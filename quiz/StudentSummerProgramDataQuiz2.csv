@@ -1,0 +1,16 @@
+PersonNum,Gender,State,GPA,WorkExp,MathScore,WritingScore,Decision
+1,Female,California,3.9,Yes,962,100,Admit
+2,Female,Florida,3.8,No,969,97,Admit
+3,Male,California,3.8,Yes,970,98,Admit
+4,Male,Colorado,3.92,No,969,95,Admit
+5,Male,California,3.8,Yes,967,95,Admit
+6,Female,California,3.88,No,967,95,Admit
+7,Male,Utah,3.01,No,769,69,Decline
+8,Male,Utah,3.33,Yes,768,70,Decline
+9,Female,Florida,3.56,No,769,81,Decline
+10,Female,Colorado,2.85,Yes,762,75,Decline
+11,Male,Florida,3.4,No,859,88,Wait
+12,Male,Florida,3.45,No,867,71,Wait
+13,Male,Florida,3.5,Yes,869,73,Wait
+14,Female,New York,3.55,Yes,866,74,Wait
+15,Male,Georgia,3.56,No,866,89,Wait

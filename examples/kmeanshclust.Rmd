@@ -1,0 +1,284 @@
+---
+title: "CSCI 5622 Mod 2"
+author: "Isaiah Lyons-Galante"
+date: "2023-02-23"
+output: html_document
+---
+Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Libraries
+```{r}
+library(stats)  ## for dist
+#https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/dist
+
+## There are many clustering libraries
+#install.packages("NbClust")
+library(NbClust)
+library(cluster)
+library(mclust)
+
+library(amap)  ## for using Kmeans (notice the cap K)
+
+library(factoextra) ## for cluster vis, silhouette, etc.
+library(purrr)
+
+#install.packages("stylo")
+library(stylo)  ## for dist.cosine
+#install.packages("philentropy")
+library(philentropy)  ## for distance() which offers 46 metrics
+## https://cran.r-project.org/web/packages/philentropy/vignettes/Distances.html
+library(SnowballC)
+library(caTools)
+library(dplyr)
+library(textstem)
+library(stringr)
+library(wordcloud)
+library(tm) ## to read in corpus (text data)
+```
+
+Load Data, Calculate Distances
+```{r}
+## Always start small and easy.
+## Let's start with the smallest and easiest dataset
+## This is a record dataset with only 3 variables
+## It is labeled data - so we will NEED TO REMOVE the label
+## before clustering.
+
+## I will set my working dir to point to the data on MY 
+## computer :) You will need to update this.
+
+# setwd("C:/Users/profa/Documents/RStudioFolder_1/DrGExamples/ClusterData")
+df_all<-read.csv("ClusterSmall3DDataset.csv")
+df<-df_all  ## make a copy
+## Look, clean, prep
+head(df)
+str(df)
+## Save the label
+(Label_3D <- df$Label)
+## Remove the label from the dataset
+## remove column 1
+df <- df[ ,-c(1) ]
+head(df)
+
+
+### Look at the pairwise distances between the vectors (rows, points in 3D)
+(Dist1<- dist(df, method = "minkowski", p=1)) ##Manhattan
+(Dist2<- dist(df, method = "minkowski", p=2)) #Euclidean
+(DistE<- dist(df, method = "euclidean")) #same as p = 2
+
+## test to see that rescale does what you think it should --
+##v=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+##rescale(v)
+
+## Create a normalized version of df
+(df_Norm <- as.data.frame(apply(df[,1:3 ], 2, ##2 for col
+                                 function(x) (x - min(x))/(max(x)-min(x)))))
+
+
+## Look at scaled distances
+(Dist_norm<- dist(df_Norm, method = "minkowski", p=2)) #Euclidean
+
+## You can use scale in R - I suggest you read about it first :)
+## (df_scale<-scale(df))
+## You can also try to code your own distance metric
+```
+
+K-Means Clustering
+```{r}
+
+############################### ----------> Let's cluster
+## NbClust helps to determine the number of clusters.
+## https://cran.r-project.org/web/packages/NbClust/NbClust.pdf
+## 
+## We can also use Silhouette
+##
+######################################################
+## Learn more about NbClust and the options
+## https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwjo_5GujJTsAhXSwFkKHbIuAfkQFjACegQIBxAC&url=https%3A%2F%2Fwww.jstatsoft.org%2Fv61%2Fi06%2Fpaper&usg=AOvVaw3l5m5LhJgmgjj4a3mBrn6_
+
+kmeans_3D_1<-NbClust::NbClust(df_Norm, 
+                             min.nc=2, max.nc=5, method="kmeans")
+## How many clusters is best....let's SEE.........
+table(kmeans_3D_1$Best.n[1,])
+
+barplot(table(kmeans_3D_1$Best.n[1,]), 
+        xlab="Numer of Clusters", ylab="",
+        main="Number of Clusters")
+
+## Does Silhouette agree?
+fviz_nbclust(df_Norm, method = "silhouette", 
+                      FUN = hcut, k.max = 5)
+## OK!
+## Two clusters (k = 2) is likely the best. 
+## 
+# Silhouette Coefficient = (x-y)/ max(x,y)
+# 
+# y: mean in cluster
+# x: mean dist from nearest cluster
+# -1 means val in wrong cluster
+# 1 means right cluster
+
+##############################
+## Elbow Method (WSS - within sum sq)
+############################# Elbow Methods ###################
+
+fviz_nbclust(
+  as.matrix(df_Norm), 
+  kmeans, 
+  k.max = 5,
+  method = "wss",
+  diss = get_dist(as.matrix(df_Norm), method = "manhattan")
+)
+
+##########################
+## k means..............
+######################################
+kmeans_3D_1_Result <- kmeans(df, 2, nstart=25)   
+## I could have used the normalized data - which is better to use
+## But - by using the non-norm data, the results make more visual
+## sense - which also matters.
+
+# Print the results
+print(kmeans_3D_1_Result)
+
+kmeans_3D_1_Result$centers  
+
+aggregate(df, 
+          by=list(cluster=kmeans_3D_1_Result$cluster), mean)
+
+## Compare to the labels
+table(df_all$Label, kmeans_3D_1_Result$cluster)
+## This is a confusion matrix with 100% prediction (very rare :)
+
+summary(kmeans_3D_1_Result)
+## cluster  10  means that there are 10 points all placed
+## into a cluster. In our case, 5 in one and 5 in the other.
+## Centers: 6    The 6 means that each of the 2 centers is 3D
+## This is NOT intuative!!
+## size:  2   for 2 clusters
+## More about the other measures...
+## https://www.datanovia.com/en/lessons/k-means-clustering-in-r-algorith-and-practical-examples/
+##
+
+## Place results in a tbale with the original data
+cbind(df_all, cluster = kmeans_3D_1_Result$cluster)
+
+## See each cluster
+kmeans_3D_1_Result$cluster
+
+## This is the size (the number of points in) each cluster
+# Cluster size
+kmeans_3D_1_Result$size
+## Here we have two clusters, each with 5 points (rows/vectors) 
+
+## Visualize the clusters
+fviz_cluster(kmeans_3D_1_Result, df, main="Euclidean")
+##-------------------------------------------------
+## There are other k means options in R
+## Let's try amap  Kmeans
+## Notice the "K" in Kmeans is cap...
+## k = 2
+##RE:
+## https://rdrr.io/cran/amap/man/Kmeans.html
+##-----------------------------------------------------
+My_Kmeans_3D_2<-Kmeans(df_Norm, centers=2 ,method = "spearman")
+fviz_cluster(My_Kmeans_3D_2, df, main="Spearman")
+## k= 3
+My_Kmeans_3D_3<-Kmeans(df_Norm, centers=3 ,method = "spearman")
+fviz_cluster(My_Kmeans_3D_3, df, main="Spearman")
+## k = 2 with Euclidean
+My_Kmeans_3D_E<-Kmeans(df_Norm, centers=2 ,method = "euclidean")
+fviz_cluster(My_Kmeans_3D_E, df, main="Euclidean")
+## k = 3 with Euclidean
+My_Kmeans_3D_E3<-Kmeans(df_Norm, centers=3 ,method = "euclidean")
+fviz_cluster(My_Kmeans_3D_E3, df, main="Euclidean")
+
+
+## Heat maps...
+## Recall that we have Dist2..
+##(Dist2<- dist(df, method = "minkowski", p=2)) #Euclidean
+fviz_dist(Dist2, gradient = list(low = "#00AFBB", 
+                            mid = "white", high = "#FC4E07"))+
+                            ggtitle("Euclidean Heatmap")
+
+## Compare to clusters...
+cbind(df_all, cluster = kmeans_3D_1_Result$cluster)
+```
+
+
+Hierarchical Clustering
+```{r}
+#######################################################
+## 
+##          Hierarchical CLustering
+## 
+##
+#######################################################
+#
+# Hierarchical clustering with Ward
+# https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/hclust
+#  
+# ward.D2" = Ward's minimum variance method -
+# however dissimilarities are **squared before clustering. 
+# "single" = Nearest neighbours method. 
+# "complete" = distance between two clusters is defined 
+# as the maximum distance between an observation in one.
+####################################################################
+##
+## For hclust, you need a distance matrix
+## You can create any distance matrix you wish...
+##
+## https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/hclust
+####################################################################
+## Example:
+(Dist_norm_M2<- dist(df_Norm, method = "minkowski", p=2)) #Euclidean
+## Now run hclust...you may use many methods - Ward, Ward.D2, complete, etc..
+## see above
+(HClust_Ward_Euc_N_3D <- hclust(Dist_norm_M2, method = "average" ))
+plot(HClust_Ward_Euc_N_3D, cex=0.9, hang=-1, main = "Minkowski p=2 (Euclidean)")
+rect.hclust(HClust_Ward_Euc_N_3D, k=4)
+
+## Using Man with Ward.D2..............................
+dist_C <- stats::dist(df_Norm, method="manhattan")
+HClust_Ward_CosSim_N_3D <- hclust(dist_C, method="ward.D2")
+plot(HClust_Ward_CosSim_N_3D, cex=.7, hang=-30,main = "Manhattan")
+rect.hclust(HClust_Ward_CosSim_N_3D, k=2)
+```
+
+Testing
+
+```{r}
+##################################################
+##
+##     TESTING  - Which methods to use??
+##
+##    Method with stronger clustering structures??
+######################################################
+#library(purrr)
+#install.packages("cluster")
+#library(cluster)
+
+methods <- c( "average", "single", "complete", "ward")
+names(methods) <- c( "average", "single", "complete", "ward")
+
+####### ---->  function to compute coefficient-------
+MethodMeasures <- function(x) {
+  cluster::agnes(df_Norm, method = x)$ac
+}
+
+# The agnes() function will get the agglomerative coefficient (AC), 
+# which measures the amount of clustering structure found.
+# Get agglomerative coefficient for each linkage method
+(purrr::map_dbl(methods, MethodMeasures))
+
+## Looks like ward is best...................
+## RE:
+## http://web.mit.edu/~r/current/arch/i386_linux26/lib/R/library/stats/html/hclust.html
+
+
+```
+
+
