@@ -2,11 +2,24 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import seaborn as sns
+# import matplotlib as plt
+# from yellowbrick.cluster import SilhouetteVisualizer
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+import os as os
 
 #%%
+# get current working directory
+wd = os.getcwd()
+
 # read in entire survey
-sl19 = pd.read_stata("~/Documents/code/csci5622/csci5622mod2/proj/data/SLHR7ADT/SLHR7AFL.DTA")
+# for surface
+# sl19 = pd.read_stata("~/Documents/code/csci5622/csci5622mod2/proj/data/SLHR7ADT/SLHR7AFL.DTA")
+# for PC
+# sl19 = pd.read_stata("C:/Users/ilyon/OneDrive - UCB-O365/Documents/code/csci5622/mod2/proj/data/SLHR7ADT/SLHR7AFL.DTA")
+
+# generalized
+sl19 = pd.read_stata(wd + "\data\SLHR7ADT\SLHR7AFL.DTA")
 
 #%%
 # keep just columns of interest
@@ -15,17 +28,19 @@ sl19keep = sl19[cols2keep]
 
 #%%
 # keep just numeric variables of interest
-intCols = ["hv010","hv011","hv012","hv013","hv014","hv216","hv271"]
+intCols = ["hv010","hv011","hv012","hv014","hv216","hv271"]
 sl19keepNum = sl19[intCols]
+
+# copy to prepare for cleaning
 df = sl19keepNum
 
 #%%
 # convert strings into ints
 # TODO come back and pull out some of these categories into integers
-df.loc[df["hv204"] == "on premises", "hv204"] = 0   # water from house
-df.loc[df["hv245"] == "don't know", "hv245"] = 1
-df.loc[df["hv245"] == "unknown", "hv245"] = 1
-df.loc[df["hv245"] == "95 or over", "hv245"] = 95
+# df.loc[df["hv204"] == "on premises", "hv204"] = 0   # water from house
+# df.loc[df["hv245"] == "don't know", "hv245"] = 1
+# df.loc[df["hv245"] == "unknown", "hv245"] = 1
+# df.loc[df["hv245"] == "95 or over", "hv245"] = 95
 
 #%%
 # scale data with mean = 0, stddev = 1
@@ -44,10 +59,20 @@ sns.set(rc={'figure.figsize':(8,10)})
 sns.relplot(data=finalDf, x="pc1", y="pc2", hue="hv206", size=0.5)
 
 #%% 
-# kmeans with n=2
-kmeans = KMeans(n_clusters=3)
+# set number of clusters
+kmeans = KMeans(n_clusters=6)
+
+# run kmeans
 identified_clusters = kmeans.fit_predict(sl19scaled)
+
+# merge clusters with original dataset
 sl19clustered = sl19keep.copy()
 sl19clustered["clusters"] = identified_clusters
 finalDf["clusters"] = identified_clusters
+
+# plot clusters
 sns.relplot(data=finalDf, x="pc1", y="pc2", hue="clusters", size=0.5)
+
+# evaluate silhouette score
+score = silhouette_score(sl19scaled, kmeans.labels_, metric='euclidean')
+print(score)
