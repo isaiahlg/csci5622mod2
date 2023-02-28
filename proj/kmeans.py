@@ -3,7 +3,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import seaborn as sns
 # import matplotlib as plt
-# from yellowbrick.cluster import SilhouetteVisualizer
+from yellowbrick.cluster import SilhouetteVisualizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 import os as os
@@ -28,11 +28,14 @@ sl19keep = sl19[cols2keep]
 
 #%%
 # keep just numeric variables of interest
-intCols = ["hv010","hv011","hv012","hv014","hv216","hv271"]
-sl19keepNum = sl19[intCols]
+intCols = ["hv010","hv011","hv012","hv014","hv216"]
+sl19num = sl19[intCols]
+
+# export csv
+sl19num.to_csv(wd + "\data\sl19num.csv")
 
 # copy to prepare for cleaning
-df = sl19keepNum
+df = sl19num
 
 #%%
 # convert strings into ints
@@ -46,27 +49,32 @@ df = sl19keepNum
 # scale data with mean = 0, stddev = 1
 sl19scaled = StandardScaler().fit_transform(df)
 
+# export csv
+sl19scaledDf = pd.DataFrame(sl19scaled)
+sl19scaledDf.to_csv(wd + "\data\sl19scaled.csv")
+
 #%%
 # reduce columns down to 3 for clustering
 pca = PCA(n_components=2)
 principalComponents = pca.fit_transform(sl19scaled)
 principalDf = pd.DataFrame(data = principalComponents, columns = ['pc1', 'pc2'])
-finalDf = pd.concat([principalDf, sl19keep[["hv206"]]], axis = 1)
+z = "hv270a" # wealth index combined for urban
+finalDf = pd.concat([principalDf, sl19[[z]]], axis = 1)
 
-#%%
-# finalDf.plot(x='pc1', y='pc2', kind='scatter', title="PCA 1 vs. 2", hue='hv206')
+# plot the principal components with another variable for color
 sns.set(rc={'figure.figsize':(8,10)})
-sns.relplot(data=finalDf, x="pc1", y="pc2", hue="hv206", size=0.5)
+sns.relplot(data=finalDf, x="pc1", y="pc2", hue=z, size=0.5)
 
 #%% 
 # set number of clusters
-kmeans = KMeans(n_clusters=6)
+n = 3
+kmeans = KMeans(n_clusters=n)
 
 # run kmeans
 identified_clusters = kmeans.fit_predict(sl19scaled)
 
 # merge clusters with original dataset
-sl19clustered = sl19keep.copy()
+sl19clustered = sl19numdf.copy()
 sl19clustered["clusters"] = identified_clusters
 finalDf["clusters"] = identified_clusters
 
@@ -75,4 +83,4 @@ sns.relplot(data=finalDf, x="pc1", y="pc2", hue="clusters", size=0.5)
 
 # evaluate silhouette score
 score = silhouette_score(sl19scaled, kmeans.labels_, metric='euclidean')
-print(score)
+print("Silhouette Score for n=" + str(n) + ": " + str(score))
