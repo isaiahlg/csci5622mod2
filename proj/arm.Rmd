@@ -103,27 +103,26 @@ saveRDS(tx, "./data/tx.rds")
 ```{r}
 # read in transaction data
 tx <- readRDS("./data/tx.rds")
-inspect(tx[1:10])
+inspect(tx[1:20])
 
 # use a prior to get the rules
 rules <- arules::apriori(tx, parameter = list(
-  support = 0.1,
+  support = 0.15,
   confidence = 0.5,
   minlen = 2
 ))
-inspect(rules[1:10])
 length(rules)
 
 # look at most frequent items
-itemFrequencyPlot(tx, topN=25, type="absolute")
+itemFrequencyPlot(tx, topN=25, type="relative")
 
 # sort rules
 rules.supp <- sort(rules, by="support", decreasing = TRUE)
 rules.conf <- sort(rules, by="confidence", decreasing = TRUE)
 rules.lift <- sort(rules, by="lift", decreasing = TRUE)
-inspect(rules.supp[1:10])
-inspect(rules.conf[1:10])
-inspect(rules.lift[1:10])
+inspect(rules.supp[1:15])
+inspect(rules.conf[1:15])
+inspect(rules.lift[1:15])
 
 ```
 
@@ -135,6 +134,7 @@ inspect(rules.lift[1:10])
 library(arulesViz)
 
 # visualize them
-plot(head(rules.lift, 50), method="graph", engine="interactive")
-hist(sl19arm$hv206)
+plot(head(rules.lift, 15), method="graph", engine="htmlwidget")
 ```
+
+
