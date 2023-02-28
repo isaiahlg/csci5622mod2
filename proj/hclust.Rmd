@@ -42,41 +42,23 @@ saveRDS(sl19, "./data/sl19.rds")
 
 ## Clean up data
 
-### Chop down dataset to just section 1 and convert some columns to factors
-```{r}
-# reread in data from csv files
-sl19 <- readRDS("./exports/sl19.rds")
-var_labels <- readRDS("./exports/var_labels.rds")
-
-# drop all sections but the first one
-sl19sec1 <- sl19[,c(1:148)] 
-varSec1 <- var_labels[c(1:148),]
-
-# export
-saveRDS(sl19sec1, "./exports/sl19sec1.rds")
-saveRDS(varSec1, "./exports/varSec1.rds")
-
-# write to csv as well
-# write.csv(varSec1, "./exports/varSec1.csv", row.names = FALSE)
-# write.csv(sl19sec1, "./exports/sl19sec1.csv", row.names = FALSE)
-```
 
 ### Chop down to 56 variables of interest
 ```{r}
 # read in shortened RDS
-sl19sec1 <- readRDS("./exports/sl19sec1.rds")
-varSec1 <- readRDS("./exports/varSec1.rds")
+sl19 <- readRDS("./data/sl19.rds")
+var_labels <- readRDS("./data/var_labels.rds")
 
-# columns of interest
-keep2names <- c("hv000","hv001","hv006","hv007","hv010","hv011","hv012","hv013","hv014","hv024","hv025","hv040","hv045c","hv201","hv204","hv205","hv206","hv207","hv208","hv209","hv210","hv211","hv212","hv213","hv214","hv215","hv216","hv217","hv219","hv220","hv221","hv226","hv227","hv230a","hv237","hv241","hv243a","hv243b","hv243c","hv243d","hv243e","hv244","hv245","hv246","hv246a","hv246b","hv246c","hv246d","hv246e","hv246f","hv247","hv270","hv271","hv270a","hv271a","hml1")
+# numerical columns of interest
+numCols <- c("hv010","hv011","hv012","hv014","hv216")
 
 # filter
-sl19keep <- sl19sec1[,keep2names]
-vars2keep <- varSec1[keep2names,]
+sl19num <- sl19[,numCols]
+varsNum <- varSec1[numCols,]
 
-# convert certain columns to factors
-factorCols <- c("hv000","hv001","hv006","hv007","hv024","hv025","hv045c","hv201","hv205","hv206","hv207","hv208","hv209","hv210","hv211","hv212","hv213","hv214","hv215","hv217","hv219","hv221","hv226","hv227","hv230a","hv237","hv241","hv243a","hv243b","hv243c","hv243d","hv243e","hv244","hv246","hv246a","hv246b","hv246c","hv246d","hv246e","hv246f","hv247","hv270","hv270a")
-sl19keep <- sl19keep %>% mutate_at(factorCols, as.factor)
+# # convert certain columns to factors
+# factorCols <- c("hv000","hv001","hv006","hv007","hv024","hv025","hv045c","hv201","hv205","hv206","hv207","hv208","hv209","hv210","hv211","hv212","hv213","hv214","hv215","hv217","hv219","hv221","hv226","hv227","hv230a","hv237","hv241","hv243a","hv243b","hv243c","hv243d","hv243e","hv244","hv246","hv246a","hv246b","hv246c","hv246d","hv246e","hv246f","hv247","hv270","hv270a")
+# sl19keep <- sl19keep %>% mutate_at(factorCols, as.factor)
 
 # export to RDS
 saveRDS(vars2keep, "./exports/vars2keep.rds")

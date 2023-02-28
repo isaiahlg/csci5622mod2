@@ -1,8 +1,9 @@
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import seaborn as sns
-# import matplotlib as plt
+import matplotlib as plt
 from yellowbrick.cluster import SilhouetteVisualizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -47,7 +48,12 @@ df = sl19num
 
 #%%
 # scale data with mean = 0, stddev = 1
-sl19scaled = StandardScaler().fit_transform(df)
+scaler = StandardScaler()
+sl19scaled = scaler.fit_transform(df)
+
+# record mean, variance in order to scale back
+means = scaler.mean_
+stddevs = scaler.scale_
 
 # export csv
 sl19scaledDf = pd.DataFrame(sl19scaled)
@@ -63,24 +69,65 @@ finalDf = pd.concat([principalDf, sl19[[z]]], axis = 1)
 
 # plot the principal components with another variable for color
 sns.set(rc={'figure.figsize':(8,10)})
-sns.relplot(data=finalDf, x="pc1", y="pc2", hue=z, size=0.5)
+sns.relplot(data=finalDf, x="pc1", y="pc2", hue=z, size=0.5).set(title="2 Pricipal Components of Numerical Data by Wealth Index")
 
 #%% 
-# set number of clusters
-n = 3
-kmeans = KMeans(n_clusters=n)
+# setup a plot for silhouette
+fig, ax = plt.pyplot.subplots(2, 2, figsize=(15,8))
+kmeans = {}
+sl19clustered = {}
+scores = {}
+centers = {}
+cluster_means = {}
+sl19clustered = sl19scaledDf.copy()
+# run kmeans for a range of k values
+# calculate silhouette score
+# plot silhouettes
+for i in [2,3,4,5]:
+    kmeans[i] = KMeans(n_clusters=i, random_state=44)
+    
+    # run kmeans
+    identified_clusters = kmeans[i].fit_predict(sl19scaled)
+    
+    # extract centroids
+    centers[i] = kmeans[i].cluster_centers_
+    
+    # merge clusters with original dataset
+    sl19clustered["clusters"+str(i)] = identified_clusters
+    finalDf["clusters"+str(i)] = identified_clusters
+    sl19keep["clusters"+str(i)] = identified_clusters
+   
+    # extract cluster mean wealth index
+    cluster_means[i] = {}
+    for j in range(i):
+        cluster_means[i][j] = sl19keep.loc[sl19keep["clusters"+str(i)] == j, "hv271"].mean()
 
-# run kmeans
-identified_clusters = kmeans.fit_predict(sl19scaled)
+    # plot clusters
+    sns.relplot(data=finalDf, x="pc1", y="pc2", hue="clusters"+str(i), size=0.5, palette=sns.color_palette("deep", i)).set(title=str(i)+" Clusters")
+    
+    # evaluate silhouette score
+    scores[i] = silhouette_score(sl19scaled, kmeans[i].labels_, metric='euclidean')
+    print("Silhouette Score for n=" + str(i) + ": " + str(scores[i]))
+    
+    # create SilhouetteVisualizer instance with KMeans instance
+    q, mod = divmod(i, 2)
+    visualizer = SilhouetteVisualizer(kmeans[i], colors='sns_deep', ax=ax[q-1][mod])
+    # fit the visualizer
+    visualizer.fit(sl19scaled)
 
-# merge clusters with original dataset
-sl19clustered = sl19numdf.copy()
-sl19clustered["clusters"] = identified_clusters
-finalDf["clusters"] = identified_clusters
+#%% 
+# interpret results by unscaling centroids
+# print(centers)
+# print(scales)
+print("Names:", ["women","men","total","children","rooms"])
+print("Means:", means)
 
-# plot clusters
-sns.relplot(data=finalDf, x="pc1", y="pc2", hue="clusters", size=0.5)
-
-# evaluate silhouette score
-score = silhouette_score(sl19scaled, kmeans.labels_, metric='euclidean')
-print("Silhouette Score for n=" + str(n) + ": " + str(score))
+centers_unscaled = {}
+for i in [2,3,4,5]:
+    # print("k =",i)
+    centers_unscaled[i] = {}
+    for j in range(i):
+        x = np.multiply(centers[i][j], stddevs)
+        y = np.add(x, means)
+        print(y)
+        centers_unscaled[i][j] = y
