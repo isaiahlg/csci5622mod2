@@ -38,7 +38,7 @@ saveRDS(sl19, "./data/sl19.rds")
 
 ## Clean up data
 ```{r}
-# read in shortened RDS
+# read in RDS
 sl19 <- readRDS("./data/sl19.rds")
 var_labels <- readRDS("./data/var_labels.rds")
 
@@ -56,6 +56,10 @@ saveRDS(sl19num, "./data/sl19num.rds")
 
 ## Prep data for hierarchical clustering
 ```{r}
+# reread in objects
+sl19num <- readRDS("./data/sl19num.rds")
+varsNum <- readRDS("./data/varsNum.rds")
+
 # calculate distances
 library(stats)
 library(stylo)
@@ -76,5 +80,4 @@ plot(hist_cos)
 ```{r}
 library(factoextra)
 fviz_nbclust(df, kmeans, method='silhouette')
-
 ```
