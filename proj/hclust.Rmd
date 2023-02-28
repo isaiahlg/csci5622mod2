@@ -10,17 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
-# load needed libraries
-library(rdhs)
-library(tidyverse)
-```
-
-
 ## Import Data
 
 ### Using the package rdhs
 ```{r}
+# import necessary library
+library(rdhs)
+
 # set credentials for accessing DHS API
 set_rdhs_config(email = "isaiah.lyons-galante@colorado.edu",
                 project = "Machine Learning Class Project")
@@ -41,9 +37,6 @@ saveRDS(sl19, "./data/sl19.rds")
 ```
 
 ## Clean up data
-
-
-### Chop down to 56 variables of interest
 ```{r}
 # read in shortened RDS
 sl19 <- readRDS("./data/sl19.rds")
@@ -54,18 +47,34 @@ numCols <- c("hv010","hv011","hv012","hv014","hv216")
 
 # filter
 sl19num <- sl19[,numCols]
-varsNum <- varSec1[numCols,]
-
-# # convert certain columns to factors
-# factorCols <- c("hv000","hv001","hv006","hv007","hv024","hv025","hv045c","hv201","hv205","hv206","hv207","hv208","hv209","hv210","hv211","hv212","hv213","hv214","hv215","hv217","hv219","hv221","hv226","hv227","hv230a","hv237","hv241","hv243a","hv243b","hv243c","hv243d","hv243e","hv244","hv246","hv246a","hv246b","hv246c","hv246d","hv246e","hv246f","hv247","hv270","hv270a")
-# sl19keep <- sl19keep %>% mutate_at(factorCols, as.factor)
+varsNum <- var_labels[numCols,]
 
 # export to RDS
-saveRDS(vars2keep, "./exports/vars2keep.rds")
-saveRDS(sl19keep, "./exports/sl19keep.rds")
-
-# write to csv as well
-# write.csv(varSec1, "/./exports/varSec1.csv", row.names = FALSE)
-# write.csv(sl19sec1, "./exports/sl19sec1.csv", row.names = FALSE)
+saveRDS(varsNum, "./data/varsNum.rds")
+saveRDS(sl19num, "./data/sl19num.rds")
 ```
 
+## Prep data for hierarchical clustering
+```{r}
+# calculate distances
+library(stats)
+library(stylo)
+
+df <- scale(sl19num)
+dist_euc <- stats::dist(df, method="minkowski", p=2)
+dist_cos <- stylo::dist.cosine(df)
+
+# perform clustering
+hist_euc <- stats::hclust(dist_euc, method="ward.D2")
+plot(hist_euc)
+
+hist_cos <- stats::hclust(dist_cos, method="ward.D2")
+plot(hist_cos)
+```
+
+## Elbow Check for Optimal Cluster Number
+```{r}
+library(factoextra)
+fviz_nbclust(df, kmeans, method='silhouette')
+
+```
