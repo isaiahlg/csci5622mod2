@@ -32,6 +32,7 @@ saveRDS(varsArm, "./data/varsArm.rds")
 
 ## Prep data for ARM
 ```{r}
+library(haven)
 # reread in objects
 sl19arm <- readRDS("./data/sl19arm.rds")
 
@@ -128,12 +129,12 @@ inspect(rules.lift[1:10])
 
 ## Visualize Results
 ```{r}
-detach("package:arulesViz", unload=TRUE)
-detach("package:arules", unload=TRUE)
-library(arules)
+# detach("package:arulesViz", unload=TRUE)
+# detach("package:arules", unload=TRUE)
+# library(arules)
 library(arulesViz)
 
 # visualize them
-plot(head(rules.lift, 10), method="graph", engine="interactive")
-
+plot(head(rules.lift, 50), method="graph", engine="interactive")
+hist(sl19arm$hv206)
 ```
